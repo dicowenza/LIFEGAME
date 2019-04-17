@@ -53,7 +53,128 @@ static int traiter_tuile (int i_d, int j_d, int i_f, int j_f)
   return change;
 }
 
+// Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
+unsigned vie_compute_seq (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it++) {
 
+    // On traite toute l'image en un coup (oui, c'est une grosse tuile)
+    unsigned change = traiter_tuile (0, 0, DIM - 1, DIM - 1);
+
+    swap_images ();
+
+    if (!change)
+      return it;
+  }
+
+  return 0;
+}
+
+/*******************************************************************/
+/*******************************************************************/
+/*******************Versions OpenMP for*******************************/
+/*******************************************************************/
+
+unsigned vie_compute_base_omp (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it++) {
+    // On traite toute l'image en un coup (oui, c'est une grosse tuile)
+    unsigned change=0;
+    #pragma omp parallel for
+    for (int i = 0; i <= DIM - 1; i++)
+    for (int j = 0; j <= DIM - 1; j++)
+        change |= compute_new_state (i, j);
+    swap_images ();
+  }
+  return 0;
+}
+
+
+unsigned static tranche =0;
+
+unsigned vie_compute_tiled_omp (unsigned nb_iter)
+{
+  tranche = DIM / GRAIN;
+  for (unsigned it = 1; it <= nb_iter; it++) {
+     unsigned change=0;
+    #pragma omp parallel for collapse(2)
+    // On itère sur les coordonnées des tuiles
+    for (int i = 0; i <GRAIN ; i++){
+      for (int j = 0; j < GRAIN; j++){
+        for (int x = i * tranche; x <= (i + 1) * tranche - 1; x++)
+        for (int y = j * tranche; y <= (j + 1) * tranche - 1; y++)
+          change |= compute_new_state (i, j);
+      }
+    }
+      
+    swap_images();
+  }
+  return 0;
+}
+
+unsigned vie_compute_opt_omp (unsigned nb_iter)
+{
+  return 0;
+}
+/*******************************************************************/
+/*******************************************************************/
+/********************fin Versions OpenMP for************************/
+/*******************************************************************/
+
+
+/*******************************************************************/
+/*******************************************************************/
+/******************Versions OpenMP task*****************************/
+/*******************************************************************/
+unsigned vie_compute_task_tiled (unsigned nb_iter)
+{
+  return 0;
+}
+
+unsigned vie_compute__task_opt (unsigned nb_iter)
+{
+  return 0;
+}
+/*******************************************************************/
+/*******************************************************************/
+/******************fin Versions OpenMP task*************************/
+/*******************************************************************/
+
+
+/*******************************************************************/
+/*******************************************************************/
+/******************Versions OpenCL *********************************/
+/*******************************************************************/
+
+unsigned vie_compute_opencl (unsigned nb_iter)
+{
+  return 0;
+}
+
+
+/*******************************************************************/
+/*******************************************************************/
+/******************fin Versions OpenCL *****************************/
+/*******************************************************************/
+
+
+/*******************************************************************/
+/*******************************************************************/
+/******************Versions MPI ************************************/
+/*******************************************************************/
+
+unsigned vie_compute__mpi (unsigned nb_iter)
+{
+  return 0;
+}
+/*******************************************************************/
+/*******************************************************************/
+/******************fin Version  MPI ********************************/
+/*******************************************************************/
+
+
+
+///////////////////////////// Configuration initiale
 
 void draw_stable (void);
 void draw_guns (void);
