@@ -99,15 +99,20 @@ unsigned vie_compute_tiled_omp (unsigned nb_iter)
      unsigned change=0;
     #pragma omp parallel for collapse(2)
     // On itère sur les coordonnées des tuiles
-    for (int i = 0; i <GRAIN ; i++){
-      for (int j = 0; j < GRAIN; j++){
+    for (int i = 0; i <GRAIN ; i++)
+    {
+      for (int j = 0; j < GRAIN; j++)
+      {
         for (int x = i * tranche; x <= (i + 1) * tranche - 1; x++)
-        for (int y = j * tranche; y <= (j + 1) * tranche - 1; y++)
-          change |= compute_new_state (i, j);
+        {
+          for (int y = j * tranche; y <= (j + 1) * tranche - 1; y++)
+          {
+            change |= compute_new_state (x, y);
+          } 
+        }
       }
     }
-      
-    swap_images();
+    swap_images ();
   }
   return 0;
 }
