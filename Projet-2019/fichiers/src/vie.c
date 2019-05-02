@@ -75,7 +75,7 @@ unsigned vie_compute_seq (unsigned nb_iter)
 /*******************Versions OpenMP for*******************************/
 /*******************************************************************/
 
-unsigned vie_compute_base_omp (unsigned nb_iter)
+unsigned vie_compute_base_ompfor (unsigned nb_iter)
 {
   for (unsigned it = 1; it <= nb_iter; it++) {
     // On traite toute l'image en un coup (oui, c'est une grosse tuile)
@@ -92,13 +92,12 @@ unsigned vie_compute_base_omp (unsigned nb_iter)
 
 unsigned static tranche =0;
 
-unsigned vie_compute_tiled_omp (unsigned nb_iter)
+unsigned vie_compute_tiled_ompfor (unsigned nb_iter)
 {
   tranche = DIM / GRAIN;
   for (unsigned it = 1; it <= nb_iter; it++) {
      unsigned change=0;
     #pragma omp parallel for collapse(2)
-    // On itère sur les coordonnées des tuiles
     for (int i = 0; i <GRAIN ; i++)
     {
       for (int j = 0; j < GRAIN; j++)
@@ -131,8 +130,28 @@ unsigned vie_compute_opt_omp (unsigned nb_iter)
 /*******************************************************************/
 /******************Versions OpenMP task*****************************/
 /*******************************************************************/
-unsigned vie_compute_task_tiled (unsigned nb_iter)
+unsigned vie_compute_tiled_task (unsigned nb_iter)
 {
+  tranche = DIM / GRAIN;
+  for (unsigned it = 1; it <= nb_iter; it++) {
+     unsigned change=0;
+    #pragma omp parallel for collapse(2)
+    for (int i = 0; i <GRAIN ; i++)
+    {
+      for (int j = 0; j < GRAIN; j++)
+      {
+	#pragma omp task firstprivate(x,y)
+        for (int x = i * tranche; x <= (i + 1) * tranche - 1; x++)
+        {
+          for (int y = j * tranche; y <= (j + 1) * tranche - 1; y++)
+          {
+            change |= compute_new_state (x, y);
+          } 
+        }
+      }
+    }
+    swap_images ();
+  }
   return 0;
 }
 
