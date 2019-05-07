@@ -5,7 +5,7 @@ ITE=$(seq 5) # nombre de mesures
 THREADS="1 6 12" # nombre de threads à utiliser pour les expés
 GOMP_CPU_AFFINITY=$(seq 0 11) # on fixe les threads
 
-PARAM="../2Dcomp -n -k mandel -i 50 -g 16 -s " # parametres commun à toutes les executions 
+PARAM="../2Dcomp -n -k vie -i 50 -g 16 -s " # parametres commun à toutes les executions 
 
 execute (){
 EXE="$PARAM $*"
@@ -19,9 +19,15 @@ for nb in $ITE; do for OMP_NUM_THREADS in $THREADS ; do echo -n "$OMP_NUM_THREAD
 
 for i in 1024 ;  # 2 tailles : -s 256 puis -s 512 
 do
-    execute $i -v thread
-    execute $i -v thread_cyclic
-    execute $i -v thread_dyn
-    execute $i -v thread_dyn_tiled
+    execute $i -v seq
+    execute $i -v base_ompfor
+    execute $i -v tiled_ompfor
+    execute $i -v opt_ompfor
+    execute $i -v tiled_task
+    execute $i -v tiled_task_opt
+    execute $i -v opencl
+    execute $i -v mpi
+    execute $i -v advanced
+    
 done
 

@@ -5,9 +5,40 @@
 #include "graphics.h"
 #include "ocl.h"
 #include "scheduler.h"
+#include "constants.h"
 
 #include <stdbool.h>
 
+static int isAlive(int x, int y);
+static int willBeAlive(int x, int y);
+static unsigned couleur = 0xFFFF00FF; // Yellow
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int isAlive(int x, int y){
+  return cur_img(x,y) != 0;
+}
+
+int willBeAlive(int x, int y)
+{
+  int nbAlive=0;
+  for(int i = MAX(x-1, 0); i <= MIN(x+1, DIM-1); i++){
+    for(int j = MAX(y-1, 0); j <= MIN(y+1, DIM-1); j++){
+      if((i != x || j != y) && isAlive(i,j)){
+        nbAlive++;
+      }
+    }
+  }
+  if(!isAlive(x,y) && nbAlive==3)
+    return couleur;
+  else if(isAlive(x, y) && (nbAlive==2 || nbAlive==3))
+    return couleur;
+  else
+    return 0x00;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static int compute_new_state (int y, int x)
 {
   unsigned n      = 0;
@@ -62,13 +93,11 @@ unsigned vie_compute_seq (unsigned nb_iter)
     unsigned change = traiter_tuile (0, 0, DIM - 1, DIM - 1);
 
     swap_images ();
-
-    if (!change)
-      return it;
   }
 
   return 0;
 }
+
 
 /*******************************************************************/
 /*******************************************************************/
@@ -88,7 +117,19 @@ unsigned vie_compute_base_ompfor (unsigned nb_iter)
   }
   return 0;
 }
-
+unsigned vie_compute_base (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it++) {
+    // On traite toute l'image en un coup (oui, c'est une grosse tuile)
+    //unsigned change=0;
+    #pragma omp parallel for
+    for (int i = 0; i <= DIM - 1; i++)
+    for (int j = 0; j <= DIM - 1; j++)
+        next_img(i,j)= willBeAlive(i, j);
+    swap_images ();
+  }
+  return 0;
+}
 
 unsigned static tranche =0;
 
@@ -106,7 +147,8 @@ unsigned vie_compute_tiled_ompfor (unsigned nb_iter)
         {
           for (int y = j * tranche; y <= (j + 1) * tranche - 1; y++)
           {
-            change |= compute_new_state (x, y);
+            //if(willBeAlive(i,j)==couleur)
+              change |= compute_new_state (x, y);
           } 
         }
       }
@@ -116,7 +158,7 @@ unsigned vie_compute_tiled_ompfor (unsigned nb_iter)
   return 0;
 }
 
-unsigned vie_compute_opt_omp (unsigned nb_iter)
+unsigned vie_compute_opt_ompfor (unsigned nb_iter)
 {
   return 0;
 }
@@ -130,7 +172,7 @@ unsigned vie_compute_opt_omp (unsigned nb_iter)
 /*******************************************************************/
 /******************Versions OpenMP task*****************************/
 /*******************************************************************/
-unsigned vie_compute_tiled_task (unsigned nb_iter)
+/*unsigned vie_compute_tiled_task (unsigned nb_iter)
 {
   tranche = DIM / GRAIN;
   for (unsigned it = 1; it <= nb_iter; it++) {
@@ -153,12 +195,7 @@ unsigned vie_compute_tiled_task (unsigned nb_iter)
     swap_images ();
   }
   return 0;
-}
-
-unsigned vie_compute__task_opt (unsigned nb_iter)
-{
-  return 0;
-}
+}*/
 /*******************************************************************/
 /*******************************************************************/
 /******************fin Versions OpenMP task*************************/
@@ -168,7 +205,8 @@ unsigned vie_compute__task_opt (unsigned nb_iter)
 /*******************************************************************/
 /*******************************************************************/
 /******************Versions OpenCL *********************************/
-/*******************************************************************/
+/************************************************************static int isAlive(int x, int y);
+static int willBeAlive(int x, int y);*******/
 
 unsigned vie_compute_opencl (unsigned nb_iter)
 {
@@ -226,7 +264,7 @@ void vie_draw (char *param)
   f ();
 }
 
-static unsigned couleur = 0xFFFF00FF; // Yellow
+
 
 static void gun (int x, int y, int version)
 {
